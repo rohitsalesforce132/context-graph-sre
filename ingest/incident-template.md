@@ -21,8 +21,7 @@ conditions:
   on_call: ""
   recent_deploys: ""
   cluster_load: ""
-  weather: ""                   # yes, even weather matters sometimes
-  team_availability: ""         # holiday? skeleton crew?
+  team_availability: ""
 
 # Who was involved
 actors:
@@ -67,31 +66,31 @@ tags: []
 ```yaml
 id: INC-003
 type: incident_event
-title: "CAMARA QOD API 502 errors - carrier Aduna timeout"
+title: "Payment API 502 errors — upstream provider timeout"
 timestamp: "2026-04-14T09:15:00+05:30"
 severity: P2
 status: resolved
 
-symptom: "Aduna carrier requests to QOD API returning 502 after 30s timeout"
+symptom: "External provider requests returning 502 after 30s timeout"
 affected_services:
-  - camara-qod-api
-  - aduna-carrier-gateway
-blast_radius: "Aduna carrier only, PROD region, ~15% of QOD traffic"
+  - payment-api
+  - api-gateway
+blast_radius: "Provider-a only, production, ~15% of payment traffic"
 
 conditions:
-  time_of_day: "09:15 IST (morning peak, Europe coming online)"
+  time_of_day: "09:15 (morning peak)"
   active_incidents: 0
   change_freeze: false
-  on_call: "Rohit"
+  on_call: "engineer-a"
   recent_deploys: "None in last 24h"
   cluster_load: "45% CPU, 52% memory"
   team_availability: "Full team"
 
 actors:
   - role: on_call
-    person: Rohit
+    person: engineer-a
   - role: vendor
-    person: "Aduna NOC (escalated)"
+    person: "provider-a-support"
 
 detected_at: "2026-04-14T09:15:00+05:30"
 mitigated_at: "2026-04-14T09:28:00+05:30"
@@ -104,18 +103,18 @@ decision_refs:
   - DEC-003
 
 entity_refs:
-  - ENT-camara-qod-api
-  - ENT-aduna-carrier-gateway
+  - ENT-payment-api
+  - ENT-provider-a-gateway
 
 similar_incident_refs:
-  - INC-005  # Previous Aduna timeout in Feb
+  - INC-005
 
-root_cause: "Aduna carrier gateway certificate expired, their NOC confirmed"
+root_cause: "Provider gateway TLS certificate expired"
 root_cause_category: dependency
 
 follow_up:
-  - "Add cert expiry monitoring for carrier gateways"
-  - "Create alert: carrier response time > 10s for 5 min"
+  - "Add cert expiry monitoring for upstream providers"
+  - "Alert: upstream response time > 10s for 5 min"
 
-tags: [camara, qod, aduna, carrier-timeout, cert-expiry, p2]
+tags: [payment-api, provider-timeout, cert-expiry, p2]
 ```

@@ -5,51 +5,51 @@
 ### How to Query
 ```bash
 # Blast radius of a service
-python3 analyze.py --type blast-radius "camara-qod-api"
+python3 analyze.py --type blast-radius "payment-api"
 
 # Blast radius of infrastructure
-python3 analyze.py --type blast-radius "aks-prod-01"
+python3 analyze.py --type blast-radius "prod-cluster"
 ```
 
 ### What the Context Graph Returns
 
-For query: `"camara-qod-api"`
+For query: `"payment-api"`
 
-**Entity:** camara-qod-api (service, production)
-**Cluster:** aks-prod-01, eastus2
+**Entity:** payment-api (service, production)
+**Cluster:** prod-cluster, primary region
 
 **Depends on:**
-- aks-prod-01 (Kubernetes cluster)
-- kv-camara (Key Vault)
-- aduna-carrier-gateway (Carrier API)
-- azure-db-camara (Database)
+- prod-cluster (Kubernetes cluster)
+- key-vault (Secrets)
+- provider-a-gateway (External API)
+- primary-database (Database)
 
 **Depended upon by:**
-- camara-api-gateway
-- carrier-dashboard
+- api-gateway
+- customer-dashboard
 
 **Incident History:**
-- 🔴 INC-001: AKS node NotReady — OOMKilled
-- 🟠 INC-003: Aduna carrier timeout — 502s
+- 🔴 INC-001: Node NotReady — OOMKilled
+- 🟠 INC-002: Provider timeout — 502s
 
 **Decision History:**
-- ⚡ DEC-001: Skip kubelet restart (resolved INC-001)
-- ⚡ DEC-003: Circuit breaker for Aduna (resolved INC-003)
+- ⚡ DEC-001: Skip runtime restart (resolved INC-001)
+- ⚡ DEC-002: Circuit breaker for provider (resolved INC-002)
 
 ### Why This Matters for Incident Response
 
-When you get paged for `camara-qod-api` errors:
+When you get paged for `payment-api` errors:
 
 1. **Check dependencies** — is it the service, or something it depends on?
 2. **Check precedents** — has this happened before? What worked?
 3. **Check patterns** — are there recurring issues?
 
-The context graph gives you ALL of this in one query. No digging through Slack, runbooks, and post-mortems.
+The context graph gives you ALL of this in one query.
 
 ### vs Static Documentation
 
 | Context Graph | Static Documentation |
 |---------------|---------------------|
-| "camara-qod-api depends on Aduna which had a cert issue in INC-003" | "camara-qod-api connects to carrier gateways" |
+| "payment-api depends on provider-a which had a cert issue in INC-002" | "payment-api connects to external providers" |
 | Shows precedent: circuit breaker worked | No precedent data |
-| Shows temporal pattern: Aduna has recurring issues | No pattern recognition |
+| Shows temporal pattern: provider has recurring issues | No pattern recognition |

@@ -9,7 +9,7 @@ Usage:
     python3 analyze.py --type precedents "disk pressure"
     python3 analyze.py --type decisions --incident INC-001
     python3 analyze.py --type patterns
-    python3 analyze.py --type blast-radius "camara-qod-api"
+    python3 analyze.py --type blast-radius "payment-api"
     python3 analyze.py --type exceptions --last 30d
 """
 

@@ -8,42 +8,46 @@ The core node — a moment where something happened that required a decision.
 ```yaml
 id: INC-001
 type: incident_event
-title: "AKS PROD Node NotReady - camara-qod pods failing"
+title: "Production Node NotReady - API pods failing"
 timestamp: "2026-04-12T14:23:00+05:30"
 severity: P1
 status: resolved
 
-# What happened
-symptom: "3 nodes in aks-prod-01 transitioned to NotReady state"
+symptom: "3 nodes in production cluster transitioned to NotReady state"
 affected_services:
-  - camara-qod-api
-  - camara-nef-session
-  - camara-turbo-live
-blast_radius: "All CAMARA APIs in PROD region eastus2"
+  - payment-api
+  - user-service
+  - notification-service
+blast_radius: "All APIs in production region"
 
-# Conditions at the time
 conditions:
-  time_of_day: "14:23 IST (peak traffic)"
+  time_of_day: "14:23 (peak traffic)"
   active_incidents: 0
   change_freeze: false
-  on_call: "Rohit"
-  recent_deploys: "camara-qod v2.3.1 deployed 2h prior"
+  on_call: "engineer-a"
+  recent_deploys: "payment-api v2.3.1 deployed 2h prior"
   cluster_load: "78% CPU, 65% memory"
 
-# Who was involved
 actors:
   - role: on_call
-    person: Rohit
-  - role: escalation
-    person: none_needed
+    person: engineer-a
 
-# How long
-ttk_minutes: 23  # time to know (detection)
+ttk_minutes: 23  # time to know
 ttm_minutes: 12  # time to mitigate
 ttr_minutes: 35  # time to resolve
 
-# Tags for graph traversal
-tags: [aks, node-notready, camara, prod, disk-pressure, p1]
+decision_refs: [DEC-001]
+entity_refs: [ENT-prod-cluster]
+similar_incident_refs: []
+
+root_cause: "Container runtime disk pressure — images accumulated over 90+ days"
+root_cause_category: resource_exhaustion
+
+follow_up:
+  - "Update runbook: check disk pressure before runtime restart"
+  - "Add cron: image prune weekly"
+
+tags: [kubernetes, node-notready, disk-pressure, production, p1]
 ```
 
 ### 2. Decision Trace (`decisions/`)
@@ -52,52 +56,53 @@ The reasoning chain behind a specific action. This is the **core innovation**.
 ```yaml
 id: DEC-001
 type: decision_trace
-title: "Skipped kubelet restart, went straight to disk cleanup"
+title: "Skipped container runtime restart, went straight to disk cleanup"
 timestamp: "2026-04-12T14:28:00+05:30"
 incident_ref: INC-001
 
-# The decision
-decision: "Skip runbook step 2 (kubelet restart), go to step 4 (disk cleanup)"
-rationale: "Kubelet restart caused 15-min outage in INC-004 (Mar 2026)"
+decision: "Skip runbook step 2 (runtime restart), go to step 4 (disk cleanup)"
+rationale: "Runtime restart caused 15-min outage in INC-004 (Mar 2026)"
 
-# What was considered
 options_considered:
-  - option: "Follow runbook: restart kubelet first"
+  - option: "Follow runbook: restart runtime first"
     rejected_because: "Precedent INC-004 showed this causes extended outage"
-  - option: "Disk cleanup first, then kubelet restart if needed"
+  - option: "Disk cleanup first, then runtime restart if needed"
     chosen: true
     confidence: high
 
-# Exceptions made
 exceptions:
-  - rule: "SRE runbook step 2: restart kubelet on NotReady"
+  - rule: "SRE runbook step 2: restart container runtime on NotReady"
     deviation: "Skipped step 2"
-    justification: "Historical data shows kubelet restart on disk-pressure nodes causes cascading pod evictions"
-    approved_by: "Rohit (on-call judgment)"
+    justification: "Historical data shows restart on disk-pressure nodes causes cascading pod evictions"
+    approved_by: "on-call judgment"
 
-# Precedent chain
 precedents:
   - ref: DEC-004
     similarity: "Same root cause (disk pressure), same skip rationale"
-  - ref: DEC-007
-    similarity: "Disk cleanup resolved without kubelet restart"
 
-# What was the organizational state
 organizational_state:
   other_p1s: 0
-  team_availability: "Full team online (afternoon)"
-  customer_impact: "CAMARA API latency > 500ms for 3 carriers"
-  sla_breach_risk: "High if not resolved in 30 min"
+  team_availability: "Full team online"
+  customer_impact: "API latency > 500ms"
+  sla_breach_risk: "High"
 
-# Outcome
 outcome:
   result: "Resolved in 12 minutes (vs 35 min avg for similar incidents)"
   mttr_improvement: "66% faster than standard runbook"
   side_effects: "None"
-  follow_up: "Update runbook to check disk pressure before kubelet restart"
+  follow_up: "Update runbook to check disk pressure before runtime restart"
 
-# Tags
-tags: [aks, disk-pressure, runbook-exception, fast-resolution, precedent-setting]
+actor:
+  name: engineer-a
+  role: on_call
+  experience_level: "Experienced with Kubernetes node issues"
+
+ai_reproducible: true
+ai_reproducible_notes: |
+  An AI agent with access to DEC-004 (runtime restart failed) would have
+  sufficient precedent to make this same decision.
+
+tags: [kubernetes, disk-pressure, runbook-exception, fast-resolution, precedent-setting]
 ```
 
 ### 3. Precedent Chain (`precedents/`)
@@ -106,87 +111,64 @@ Links decisions across time, showing how patterns evolved.
 ```yaml
 id: PRE-001
 type: precedent_chain
-title: "AKS Disk Pressure Response Pattern"
+title: "Node Disk Pressure Response Pattern"
 
-# The pattern
-pattern: "When AKS nodes show NotReady + disk pressure, clean disk first, skip kubelet restart"
+pattern: "When nodes show NotReady + disk pressure, clean disk first, skip runtime restart"
 
-# Evolution over time
 evolution:
   - date: "2026-01-15"
     incident: INC-002
     decision: DEC-002
-    action: "Followed runbook exactly (kubelet restart first)"
+    action: "Followed runbook exactly (runtime restart first)"
     outcome: "15 min outage, pods evicted, extended recovery"
-    lesson: "Kubelet restart on disk-pressure nodes is dangerous"
-
-  - date: "2026-03-08"
-    incident: INC-004
-    decision: DEC-004
-    action: "Tried partial skip — cleaned disk, then restarted kubelet"
-    outcome: "8 min outage, but kubelet restart unnecessary"
-    lesson: "Disk cleanup alone is sufficient in most cases"
+    lesson: "Runtime restart on disk-pressure nodes is dangerous"
 
   - date: "2026-04-12"
     incident: INC-001
     decision: DEC-001
-    action: "Skipped kubelet entirely, disk cleanup only"
+    action: "Skipped runtime entirely, disk cleanup only"
     outcome: "Resolved in 12 min, zero outage"
-    lesson: "This is now the standard approach for disk-pressure NotReady"
+    lesson: "This is now the standard approach"
 
-# Current recommendation
 recommendation: |
-  For AKS node NotReady + disk pressure:
-  1. Check disk usage: df -h /var/lib/kubelet
-  2. Clean docker images: docker image prune -a --filter "until=48h"
-  3. Clean logs: journalctl --vacuum-time=2d
+  For node NotReady + disk pressure:
+  1. Check disk usage
+  2. Clean container images
+  3. Clean logs
   4. Wait 2 min, check node status
-  5. Only restart kubelet if still NotReady after cleanup
-  6. DO NOT restart kubelet as first step
+  5. Only restart runtime if still NotReady after cleanup
 
-# Confidence
 confidence: high
 based_on_incidents: 3
 success_rate: "100% (3/3)"
-
-tags: [aks, disk-pressure, runbook-override, pattern]
 ```
 
 ### 4. Entity (`entities/`)
 Systems, services, people — the structural layer.
 
 ```yaml
-# entities/systems/aks-prod-01.md
-id: ENT-aks-prod-01
+id: ENT-prod-cluster
 type: system
-name: "aks-prod-01"
+name: "prod-cluster"
 category: kubernetes_cluster
 environment: production
-region: eastus2
+region: primary-region
+
 node_pools:
   - name: system
     count: 3
-    vm_size: Standard_D4s_v3
-  - name: camara
+  - name: workloads
     count: 5
-    vm_size: Standard_D8s_v3
 
-# What depends on this
 depends_on:
-  - ENT-azure-eastus2
-  - ENT-acr-att
+  - ENT-container-registry
+  - ENT-key-vault
 
-# What depends on this
 depended_upon_by:
-  - ENT-camara-qod-api
-  - ENT-camara-nef-session
-  - ENT-camara-turbo-live
+  - ENT-payment-api
+  - ENT-user-service
 
-# Incident history (links to context graph)
-incident_history:
-  - INC-001
-  - INC-002
-  - INC-004
+incident_history: [INC-001, INC-002]
 ```
 
 ### 5. Behavioral Pattern (`patterns/`)
@@ -197,36 +179,22 @@ id: PAT-001
 type: behavioral_pattern
 title: "On-Call Engineer Skips Runbook Steps Under Pressure"
 
-# The pattern
 pattern: |
-  When MTTR pressure is high (>15 min elapsed), on-call engineers 
-  tend to skip runbook steps they've personally found ineffective 
-  in past incidents, even if the runbook doesn't explicitly allow it.
+  When MTTR pressure is high, on-call engineers skip runbook steps
+  they've personally found ineffective in past incidents.
 
-# Evidence
 evidence:
   - decision: DEC-001
-    note: "Skipped kubelet restart based on personal experience"
-  - decision: DEC-004
-    note: "Partial skip after learning from DEC-002"
-  - decision: DEC-008
-    note: "Skipped pipeline rollback, did manual fix"
+    note: "Skipped runtime restart based on personal experience"
 
-# Implications
 implications:
   - "Runbooks are not reflecting operational reality"
-  - "Team has implicit knowledge not captured anywhere"
-  - "New team members won't know which steps to skip"
-  - "Agent without this context would follow runbook literally"
+  - "AI agents following runbooks literally will make worse decisions"
 
-# Recommendation
 recommendation: |
-  1. Audit all runbooks against actual incident decisions
+  1. Audit all runbooks against actual decision traces
   2. Add "skip conditions" to each runbook step
-  3. Create a "meta-runbook" that documents when to deviate
-  4. Feed this pattern to any AI agent operating on this infrastructure
-
-tags: [meta-pattern, runbook-deviation, implicit-knowledge]
+  3. Feed context graph to AI agents as primary decision input
 ```
 
 ---
@@ -235,16 +203,16 @@ tags: [meta-pattern, runbook-deviation, implicit-knowledge]
 
 | Edge | From → To | Meaning |
 |------|-----------|---------|
-| `solved_by` | Incident → Decision | This incident was resolved by this decision |
-| `sets_precedent` | Decision → Decision | This decision establishes a pattern for future ones |
-| `references` | Decision → Precedent | This decision explicitly cited this precedent |
-| `similar_to` | Incident → Incident | These incidents share root cause or pattern |
-| `affects` | Incident → Entity | This incident impacted this system |
+| `solved_by` | Incident → Decision | Resolved by this decision |
+| `sets_precedent` | Decision → Decision | Creates pattern for future |
+| `references` | Decision → Precedent | Explicitly cited precedent |
+| `similar_to` | Incident → Incident | Share root cause or pattern |
+| `affects` | Incident → Entity | Incident impacted this system |
 | `depends_on` | Entity → Entity | System dependency |
 | `operated_by` | Decision → Entity (person) | Who made this decision |
-| `deviates_from` | Decision → Entity (runbook) | This decision broke from standard procedure |
+| `deviates_from` | Decision → Entity (runbook) | Broke from standard procedure |
 | `triggers` | Incident → Incident | One incident caused another |
-| `pattern_instance` | Decision → Pattern | This decision is an instance of this pattern |
+| `pattern_instance` | Decision → Pattern | Instance of a recognized pattern |
 
 ---
 
@@ -252,7 +220,7 @@ tags: [meta-pattern, runbook-deviation, implicit-knowledge]
 
 ### 1. Precedent Search
 ```
-INPUT: "AKS node NotReady + disk pressure"
+INPUT: "node NotReady disk pressure"
 FIND:  All decisions involving similar symptoms
 SHOW:  What was tried, what worked, what precedent was set
 ```
@@ -266,21 +234,21 @@ SHOW:  What rules were bent, who approved, what justification
 
 ### 3. Blast Radius
 ```
-INPUT: "camara-qod-api"
+INPUT: "payment-api"
 FIND:  All entities that depend on this service
 SHOW:  Historical incidents, precedents, and patterns
 ```
 
 ### 4. Decision Quality
 ```
-INPUT: "Rohit"
+INPUT: "engineer name"
 FIND:  All decisions made by this actor
-SHOW:  Success rate, average MTTR, common patterns, exceptions
+SHOW:  Success rate, average MTTR, common patterns
 ```
 
 ### 5. Runbook Gaps
 ```
-INPUT: "aks runbook"
+INPUT: "node notready runbook"
 FIND:  Decisions that deviated from this runbook
-SHOW:  What was skipped, why, and whether it should be updated
+SHOW:  What was skipped, why, whether it should be updated
 ```

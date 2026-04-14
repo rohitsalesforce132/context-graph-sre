@@ -12,7 +12,6 @@ decision: ""                    # What was decided
 rationale: ""                   # Why this option was chosen
 
 # ─── OPTIONS CONSIDERED ─────────────────────────────
-# This is critical: show what alternatives were evaluated
 options_considered:
   - option: ""
     chosen: false
@@ -22,7 +21,6 @@ options_considered:
     confidence: high|medium|low
 
 # ─── EXCEPTIONS MADE ────────────────────────────────
-# Did this decision break any rules, policies, or runbooks?
 exceptions:
   - rule: ""                    # What rule/policy/runbook step
     deviation: ""               # What was done differently
@@ -30,38 +28,35 @@ exceptions:
     approved_by: ""             # Who approved (or "on-call judgment")
 
 # ─── PRECEDENT CHAIN ────────────────────────────────
-# What past decisions influenced this one?
 precedents:
   - ref: DEC-XXX
     similarity: ""
 
 # ─── ORGANIZATIONAL STATE ───────────────────────────
-# What was happening in the organization at decision time?
 organizational_state:
   other_active_incidents: 0
   team_availability: ""
   customer_impact: ""
   sla_breach_risk: low|medium|high|critical
-  business_context: ""          # quarter end? major launch? holiday?
+  business_context: ""
 
 # ─── OUTCOME ────────────────────────────────────────
 outcome:
-  result: ""                    # What happened
-  mttr_minutes: 0               # How long to resolve
-  mttr_vs_average: ""           # Better/worse than usual?
-  side_effects: ""              # Any unintended consequences?
-  follow_up: ""                 # What should change because of this?
+  result: ""
+  mttr_minutes: 0
+  mttr_vs_average: ""
+  side_effects: ""
+  follow_up: ""
 
 # ─── ACTOR ──────────────────────────────────────────
 actor:
   name: ""
   role: ""
-  experience_level: ""          # How familiar were they with this type of issue?
+  experience_level: ""
 
 # ─── AI READINESS ───────────────────────────────────
-# Could an AI agent have made this decision?
 ai_reproducible: true|false
-ai_reproducible_notes: ""       # Why or why not?
+ai_reproducible_notes: ""
 
 tags: []
 ```
@@ -73,55 +68,55 @@ tags: []
 ```yaml
 id: DEC-003
 type: decision_trace
-title: "Added circuit breaker instead of increasing timeout for Aduna"
+title: "Added circuit breaker instead of increasing upstream timeout"
 timestamp: "2026-04-14T09:22:00+05:30"
 incident_ref: INC-003
 
-decision: "Add circuit breaker with 10s timeout for Aduna carrier, fail fast instead of waiting 30s"
-rationale: "Aduna cert expiry is their problem. Our API shouldn't hang for 30s waiting for them."
+decision: "Add circuit breaker with 10s timeout, fail fast instead of waiting 30s"
+rationale: "Provider cert expiry is their problem. Our API shouldn't hang consuming resources."
 
 options_considered:
   - option: "Increase timeout from 30s to 60s"
     chosen: false
-    rejected_because: "Just delays the 502, doesn't solve it. Also risks thread pool exhaustion."
+    rejected_because: "Just delays the 502, risks thread pool exhaustion."
   - option: "Add circuit breaker with 10s timeout, fail fast with meaningful error"
     chosen: true
     confidence: high
-  - option: "Disable Aduna carrier entirely until they fix cert"
+  - option: "Disable provider entirely until they fix cert"
     chosen: false
-    rejected_because: "Too aggressive, would impact legitimate requests that succeed within 5s"
+    rejected_because: "Too aggressive, some requests still succeed within 5s."
 
 exceptions:
-  - rule: "Carrier timeout is configured at 30s in terraform module"
-    deviation: "Overriding to 10s via app config, will update terraform later"
-    justification: "30s is too long for cert-related failures. Circuit breaker pattern is more resilient."
-    approved_by: "Rohit (on-call judgment, will retro in standup)"
+  - rule: "Upstream timeout configured at 30s in infrastructure module"
+    deviation: "Overriding to 10s via app config"
+    justification: "Circuit breaker is standard resilience pattern. IaC update will follow."
+    approved_by: "on-call judgment (will retro in standup)"
 
 precedents:
   - ref: DEC-005
-    similarity: "Previous Aduna timeout — we increased timeout then, which didn't help"
+    similarity: "Previous provider timeout — timeout increase failed"
 
 organizational_state:
   other_active_incidents: 0
   team_availability: "Full team"
-  customer_impact: "Aduna requests failing, ~15% of traffic"
+  customer_impact: "~15% of traffic affected"
   sla_breach_risk: medium
   business_context: "Normal operations"
 
 outcome:
-  result: "Circuit breaker deployed, Aduna requests fail fast (10s), other carriers unaffected"
+  result: "Circuit breaker deployed, requests fail fast (10s)"
   mttr_minutes: 13
-  mttr_vs_average: "50% faster than INC-005 resolution"
-  side_effects: "Aduna requests that would've succeeded in 10-30s now fail — acceptable tradeoff"
-  follow_up: "Update terraform module to support per-carrier timeout config"
+  mttr_vs_average: "50% faster than previous similar incident"
+  side_effects: "Requests in 10-30s window now fail — acceptable tradeoff"
+  follow_up: "Update IaC module to support per-provider timeout config"
 
 actor:
-  name: Rohit
+  name: engineer-a
   role: on_call
-  experience_level: "3 months experience with CAMARA carrier integrations"
+  experience_level: "Familiar with provider integration patterns"
 
 ai_reproducible: true
-ai_reproducible_notes: "Circuit breaker pattern is well-documented. Precedent DEC-005 shows timeout increase failed. An AI agent with access to DEC-005 could've made this same decision."
+ai_reproducible_notes: "Circuit breaker is standard SRE pattern. Agent with resilience knowledge could make same call."
 
-tags: [circuit-breaker, carrier-timeout, aduna, config-override, precedent-setting]
+tags: [circuit-breaker, provider-timeout, config-override, precedent-setting]
 ```

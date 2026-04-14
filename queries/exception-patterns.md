@@ -23,17 +23,17 @@ Every exception is:
 ### What You Find
 
 **Decision DEC-001:**
-- Rule: "SRE Runbook: Step 2 — restart kubelet"
+- Rule: "Runbook step 2 — restart container runtime"
 - Deviation: Skipped entirely
-- Why: "Precedent shows kubelet restart causes cascading evictions"
-- Who: Rohit (on-call judgment)
+- Why: "Precedent shows restart causes cascading pod evictions"
+- Who: engineer-a (on-call judgment)
 - Outcome: ✅ Resolved 66% faster
 
-**Decision DEC-003:**
-- Rule: "Carrier timeout configured at 30s in terraform"
+**Decision DEC-002:**
+- Rule: "Upstream timeout configured at 30s in infrastructure module"
 - Deviation: Overridden to 10s via app config
 - Why: "Circuit breaker pattern is more resilient than long timeout"
-- Who: Rohit (on-call judgment)
+- Who: engineer-a (on-call judgment)
 - Outcome: ✅ 50% faster MTTR
 
 ### The Pattern

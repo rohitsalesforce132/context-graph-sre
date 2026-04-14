@@ -37,30 +37,30 @@ tags: []
 ```yaml
 id: OBS-001
 type: observation
-title: "Team checks internal wiki before official runbook during incidents"
+title: "Team checks chat history before official runbook during incidents"
 timestamp: "2026-04-14T16:00:00+05:30"
-observer: Rohit
+observer: engineer-a
 
 pattern: |
-  During the last 4 P2 incidents, the on-call engineer first checked 
-  the team's internal chat history and personal notes before opening 
-  the official runbook in Azure DevOps. The runbook was consulted only 
-  after initial investigation failed.
+  During the last 4 P2 incidents, the on-call engineer first checked
+  the team's chat history and personal notes before opening the
+  official runbook. The runbook was consulted only after initial
+  investigation failed.
 
 evidence:
-  - description: "INC-003: Rohit checked Slack #sre-incidents first, then camara-ops runbook"
+  - description: "INC-003: Engineer checked team chat first, then runbook"
     refs: [INC-003]
-  - description: "INC-001: Rohit knew to skip runbook step from personal experience"
+  - description: "INC-001: Engineer knew to skip runbook step from personal experience"
     refs: [INC-001, DEC-001]
 
 implications:
   - "Runbooks are not the first source of truth during incidents"
-  - "Institutional knowledge lives in Slack, not documentation"
-  - "New team members are at a disadvantage — they don't have the Slack history"
+  - "Institutional knowledge lives in chat, not documentation"
+  - "New team members are at a disadvantage"
   - "AI agents relying only on runbooks will make suboptimal decisions"
 
 recommendation: |
-  1. Create a "living runbook" that's updated after every incident
+  1. Create a "living runbook" updated after every incident
   2. Embed context graph queries into incident response workflow
   3. Ensure AI agents have access to decision traces, not just runbooks
 
